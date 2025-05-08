@@ -1,80 +1,55 @@
-from flask import Flask, Response
-import yfinance as yf
+from flask import Flask
 from datetime import datetime
-import openai
 import os
+import yfinance as yf
 
 app = Flask(__name__)
-openai.api_key = os.environ.get("OPENAI_API_KEY")
-
-ai_stocks = {
-    "TW": ["3661.TW", "3443.TW", "3035.TW"],
-    "US": ["NVDA", "AMD", "PLTR"]
-}
-
-qc_stocks = {
-    "TW": ["2454.TW", "2301.TW", "3105.TW"],
-    "US": ["IONQ", "RGTI", "QBTS"]
-}
-
-def fetch_stock_data(tickers):
-    data = {}
-    for symbol in tickers:
-        try:
-            stock = yf.Ticker(symbol)
-            info = stock.info
-            price = info.get("regularMarketPrice", "無法取得資料")
-            volume = info.get("volume", "無法取得資料")
-            data[symbol] = f"股價 {price}，成交量 {volume if isinstance(volume, str) else str(round(volume / 1e6)) + 'M'}"
-        except:
-            data[symbol] = "無法取得資料"
-    return data
-
-def generate_news_summary():
-    try:
-        messages = [{
-            "role": "user",
-            "content": "請用繁體中文簡要摘要今日 AI 與量子電腦領域的三則重要新聞，適合放在每日股市追蹤報告中。"
-        }]
-        response = openai.chat.completions.create(
-            model="gpt-4",
-            messages=messages,
-            max_tokens=500
-        )
-        return response.choices[0].message.content.strip()
-    except Exception as e:
-        return f"無法取得 GPT 新聞摘要。錯誤：{str(e)}"
 
 @app.route("/")
-def stock_summary():
-    today = datetime.now().strftime("%Y/%m/%d")
-    text = f"[{today} 股市追蹤]\n\n"
+def home():
+    return "AI & QC 股市追蹤報告系統已啟動，請使用 /daily_report 存取每日報告。"
 
-    text += "【AI 領域】\n國內：\n"
-    ai_tw = fetch_stock_data(ai_stocks["TW"])
-    for symbol, result in ai_tw.items():
-        text += f"{symbol}：{result}\n"
+@app.route("/daily_report")
+def daily_report():
+    ai_stocks = {
+        "國內": ["3661.TW", "3443.TW", "3035.TW"],
+        "國外": ["NVDA", "AMD", "PLTR"]
+    }
+    qc_stocks = {
+        "國內": ["2454.TW", "2301.TW", "3105.TW"],
+        "國外": ["IONQ", "RGTI", "QBTS"]
+    }
 
-    text += "\n國外：\n"
-    ai_us = fetch_stock_data(ai_stocks["US"])
-    for symbol, result in ai_us.items():
-        text += f"{symbol}：{result}\n"
+    report_lines = [f"[{datetime.now().strftime('%Y/%m/%d')} 股市追蹤]\n", "【AI 領域】"]
+    for region, tickers in ai_stocks.items():
+        report_lines.append(f"{region}：")
+        for ticker in tickers:
+            try:
+                stock = yf.Ticker(ticker)
+                todays_data = stock.history(period='1d')
+                price = todays_data['Close'].iloc[0]
+                volume = todays_data['Volume'].iloc[0]
+                report_lines.append(f"{ticker}： 股價 {price:.2f}, 成交量 {int(volume/1e6)}M")
+            except:
+                report_lines.append(f"{ticker}： 無法取得資料")
+    report_lines.append("\n【QC 領域】")
+    for region, tickers in qc_stocks.items():
+        report_lines.append(f"{region}：")
+        for ticker in tickers:
+            try:
+                stock = yf.Ticker(ticker)
+                todays_data = stock.history(period='1d')
+                price = todays_data['Close'].iloc[0]
+                volume = todays_data['Volume'].iloc[0]
+                report_lines.append(f"{ticker}： 股價 {price:.2f}, 成交量 {int(volume/1e6)}M")
+            except:
+                report_lines.append(f"{ticker}： 無法取得資料")
+    report_lines.append("\n【每日新聞摘要】\n無法取得 GPT 新聞摘要。")
+    report_lines.append("\n來源：Yahoo Finance, OpenAI GPT-4")
 
-    text += "\n【QC 領域】\n國內：\n"
-    qc_tw = fetch_stock_data(qc_stocks["TW"])
-    for symbol, result in qc_tw.items():
-        text += f"{symbol}：{result}\n"
+    txt_content = "\n".join(report_lines)
+    file_path = "/mnt/data/daily_report.txt"
+    with open(file_path, "w", encoding="utf-8") as f:
+        f.write(txt_content)
 
-    text += "\n國外：\n"
-    qc_us = fetch_stock_data(qc_stocks["US"])
-    for symbol, result in qc_us.items():
-        text += f"{symbol}：{result}\n"
-
-    text += "\n【每日新聞摘要】\n"
-    text += generate_news_summary()
-    text += "\n\n來源：Yahoo Finance, OpenAI GPT-4"
-
-    with open("stock_summary.txt", "w", encoding="utf-8") as f:
-        f.write(text)
-
-    return Response(text, mimetype="text/plain")
+    return txt_content
