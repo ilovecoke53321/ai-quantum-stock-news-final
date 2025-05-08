@@ -1,67 +1,57 @@
 from flask import Flask
-import openai
-import datetime
 import yfinance as yf
+from openai import OpenAI
+from datetime import datetime
 
 app = Flask(__name__)
 
-openai.api_key = '你的API金鑰'
+client = OpenAI()
 
 @app.route('/')
 def index():
-    return 'Welcome to AI & QC Stock Tracker'
+    return 'AI & QC 股市追蹤服務啟動成功。請使用 /daily_report 存取每日報告。'
 
 @app.route('/daily_report')
 def daily_report():
-    # 定義 AI 與量子電腦股票代碼
-    ai_stocks = {
-        '台股': ['3661.TW', '3443.TW', '3035.TW'],
-        '美股': ['NVDA', 'AMD', 'PLTR']
+    today = datetime.now().strftime('%Y/%m/%d')
+    stocks = {
+        'AI': {
+            'TW': {'世芯-KY': '3661.TW', '創意': '3443.TW', '智原': '3035.TW'},
+            'US': {'NVIDIA': 'NVDA', 'AMD': 'AMD', 'Palantir': 'PLTR'}
+        },
+        'QC': {
+            'TW': {'聯發科': '2454.TW', '光寶科': '2301.TW', '穩懋': '3105.TW'},
+            'US': {'IonQ': 'IONQ', 'Rigetti': 'RGTI', 'D-Wave': 'QBTS'}
+        }
     }
-    qc_stocks = {
-        '台股': ['2454.TW', '2301.TW', '3105.TW'],
-        '美股': ['IONQ', 'RGTI', 'QBTS']
-    }
 
-    def get_stock_info(ticker):
-        try:
-            stock = yf.Ticker(ticker)
-            todays_data = stock.history(period='1d')
-            price = todays_data['Close'].iloc[0]
-            volume = todays_data['Volume'].iloc[0]
-            return f'股價 {price:.2f}，成交量 {int(volume / 1000000)}M'
-        except:
-            return '無法取得資料'
+    output = [f"[{today} 股市追蹤]"]
+    for field, region_data in stocks.items():
+        output.append(f"\n【{field} 領域】")
+        for region, companies in region_data.items():
+            output.append(f"\n{('國內' if region == 'TW' else '國外')}：")
+            for name, symbol in companies.items():
+                try:
+                    data = yf.Ticker(symbol).history(period="1d")
+                    price = data['Close'][0]
+                    volume = data['Volume'][0]
+                    volume_str = f"{int(volume / 1_000_000)}M" if volume > 1_000_000 else f"{int(volume / 1_000)}K"
+                    output.append(f"{name}({symbol})： 股價 {round(price, 2)}，成交量 {volume_str}")
+                except:
+                    output.append(f"{name}({symbol})： 無法取得資料")
 
-    today = datetime.date.today().strftime('%Y/%m/%d')
-    text = f"[{today} 股市追蹤]\n\n【AI 領域】\n"
-
-    for region, stocks in ai_stocks.items():
-        text += f"{region}：\n"
-        for stock in stocks:
-            info = get_stock_info(stock)
-            text += f"{stock}：{info}\n"
-
-    text += "\n【QC 領域】\n"
-    for region, stocks in qc_stocks.items():
-        text += f"{region}：\n"
-        for stock in stocks:
-            info = get_stock_info(stock)
-            text += f"{stock}：{info}\n"
-
-    # 新聞摘要
+    # GPT 新聞摘要
     try:
-        news = openai.chat.completions.create(
+        gpt_news = client.chat.completions.create(
             model="gpt-4",
             messages=[
-                {"role": "system", "content": "請以中文撰寫摘要。"},
-                {"role": "user", "content": "請用繁體中文提供一段今天 AI 與量子電腦領域的新聞摘要。"}
+                {"role": "system", "content": "你是一位財經記者，請根據今天的 AI 與量子運算領域股市，生成 2~3 行精簡摘要。"},
+                {"role": "user", "content": "\n".join(output)}
             ]
-        )
-        news_summary = news.choices[0].message.content
+        ).choices[0].message.content
     except Exception as e:
-        news_summary = f"無法取得 GPT 新聞摘要：{str(e)}"
+        gpt_news = "無法取得 GPT 新聞摘要。"
 
-    text += f"\n【每日新聞摘要】\n{news_summary}\n\n來源：Yahoo Finance, OpenAI GPT-4"
-
-    return f"<pre>{text}</pre>"
+    output.append("\n【每日新聞摘要】\n" + gpt_news)
+    output.append("\n來源：Yahoo Finance, OpenAI GPT-4")
+    return "\n".join(output)
