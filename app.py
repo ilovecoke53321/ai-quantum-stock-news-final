@@ -2,8 +2,14 @@ import os
 import datetime
 import yfinance as yf
 from flask import Flask
+import os
 
 app = Flask(__name__)
+
+file_path = "/mnt/data/daily_report.txt"
+if not os.path.exists(file_path):
+    with open(file_path, "w", encoding="utf-8") as f:
+        f.write("尚無今日報告，請稍後再試。")
 
 @app.route('/')
 def index():
