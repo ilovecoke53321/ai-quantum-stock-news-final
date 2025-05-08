@@ -5,6 +5,10 @@ from flask import Flask
 
 app = Flask(__name__)
 
+@app.route('/')
+def index():
+    return "Service is live. Try /daily_report"
+
 @app.route('/daily_report')
 def daily_report():
     ai_stocks = {
