@@ -10,7 +10,7 @@ app = Flask(__name__)
 os.makedirs("/mnt/data", exist_ok=True)
 
 # 2. 如果報告檔不存在，就先寫一個占位文字
-file_path = "/mnt/data/daily_report.txt"
+file_path = "daily_report.txt"
 if not os.path.exists(file_path):
     with open(file_path, "w", encoding="utf-8") as f:
         f.write("尚無今日報告，請稍後再試。")
