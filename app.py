@@ -74,7 +74,7 @@ def daily_report():
 
     lines.append("\n來源：Yahoo Finance, OpenAI GPT-4")
 
-    with open("daily_report.txt", "w", encoding="utf-8") as f:
+    with open("daily_report.txt", "w", encoding="utf-8-sig") as f:
         f.write("\n".join(lines))
 
     return "\n".join(lines)
