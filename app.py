@@ -1,8 +1,8 @@
 import os
 import datetime
 import yfinance as yf
-import openai
 from flask import Flask, Response
+from openai import OpenAI
 
 # 建立初始報告檔案
 file_path = "daily_report.txt"
@@ -57,21 +57,20 @@ def daily_report():
 
     lines.append("\n【每日新聞摘要】")
 
-    # 嘗試加入 GPT-4 新聞摘要
-    openai.api_key = os.getenv("OPENAI_API_KEY")
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     try:
-        response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model="gpt-4",
             messages=[
                 {"role": "system", "content": "請以簡短方式摘要今天 AI 和量子電腦產業的重要新聞"},
                 {"role": "user", "content": "請列出重點"}
             ]
         )
-        summary = response["choices"][0]["message"]["content"]
+        summary = response.choices[0].message.content
         lines.append(summary)
     except Exception as e:
         lines.append("無法取得 GPT 新聞摘要。")
-        lines.append(str(e))
+        lines.append(str(e))  # 可選：除錯用
 
     lines.append("\n來源：Yahoo Finance, OpenAI GPT-4")
 
@@ -79,7 +78,6 @@ def daily_report():
         f.write("\n".join(lines))
 
     return "\n".join(lines)
-
 
 @app.route("/text_report")
 def text_report():
