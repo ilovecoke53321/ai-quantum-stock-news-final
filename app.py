@@ -1,15 +1,16 @@
 import os
 import datetime
 import yfinance as yf
-from flask import Flask
 import os
+from flask import Flask
 
-app = Flask(__name__)
-
+# 檢查檔案是否存在，沒有就建立
 file_path = "daily_report.txt"
 if not os.path.exists(file_path):
     with open(file_path, "w", encoding="utf-8") as f:
         f.write("尚無今日報告，請稍後再試。")
+
+app = Flask(__name__)
 
 @app.route('/')
 def index():
