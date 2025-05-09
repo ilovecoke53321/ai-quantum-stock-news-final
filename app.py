@@ -1,9 +1,10 @@
 import os
 import datetime
 import yfinance as yf
+import openai
 from flask import Flask
 
-# 檢查檔案是否存在，沒有就建立
+# 建立初始報告檔案
 file_path = "daily_report.txt"
 if not os.path.exists(file_path):
     with open(file_path, "w", encoding="utf-8") as f:
@@ -13,7 +14,7 @@ app = Flask(__name__)
 
 @app.route('/')
 def index():
-    return "Service is live. Try /daily_report"
+    return "Service is live. Try /daily_report or /text_report"
 
 @app.route('/daily_report')
 def daily_report():
@@ -55,11 +56,24 @@ def daily_report():
             lines.append(f"{symbol}：股價 {price}，成交量 {volume}")
 
     lines.append("\n【每日新聞摘要】")
-    lines.append("無法取得 GPT 新聞摘要。")
+
+    # 嘗試加入 GPT-4 新聞摘要
+    openai.api_key = os.getenv("OPENAI_API_KEY")
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-4",
+            messages=[
+                {"role": "system", "content": "請以簡短方式摘要今天 AI 和量子電腦產業的重要新聞"},
+                {"role": "user", "content": "請列出重點"}
+            ]
+        )
+        summary = response["choices"][0]["message"]["content"]
+        lines.append(summary)
+    except Exception as e:
+        lines.append("無法取得 GPT 新聞摘要。")
 
     lines.append("\n來源：Yahoo Finance, OpenAI GPT-4")
 
-    # 儲存為 txt（改為相對路徑）
     with open("daily_report.txt", "w", encoding="utf-8") as f:
         f.write("\n".join(lines))
 
