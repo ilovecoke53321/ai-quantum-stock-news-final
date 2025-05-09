@@ -1,7 +1,6 @@
 import os
 import datetime
 import yfinance as yf
-import os
 from flask import Flask
 
 # 檢查檔案是否存在，沒有就建立
@@ -60,8 +59,14 @@ def daily_report():
 
     lines.append("\n來源：Yahoo Finance, OpenAI GPT-4")
 
-    # 儲存為 txt
-    with open("/mnt/data/daily_report.txt", "w", encoding="utf-8") as f:
+    # 儲存為 txt（改為相對路徑）
+    with open("daily_report.txt", "w", encoding="utf-8") as f:
         f.write("\n".join(lines))
 
     return "\n".join(lines)
+
+@app.route("/text_report")
+def text_report():
+    with open("daily_report.txt", "r", encoding="utf-8") as f:
+        content = f.read()
+    return f"<pre>{content}</pre>"
