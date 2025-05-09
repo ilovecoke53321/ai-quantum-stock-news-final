@@ -2,7 +2,7 @@ import os
 import datetime
 import yfinance as yf
 import openai
-from flask import Flask
+from flask import Flask, Response
 
 # 建立初始報告檔案
 file_path = "daily_report.txt"
@@ -79,8 +79,9 @@ def daily_report():
 
     return "\n".join(lines)
 
+
 @app.route("/text_report")
 def text_report():
-    with open("daily_report.txt", "r", encoding="utf-8-fig") as f:
+    with open("daily_report.txt", "r", encoding="utf-8-sig") as f:
         content = f.read()
-    return f"<pre>{content}</pre>"
+    return Response(content, mimetype="text/plain; charset=utf-8")
