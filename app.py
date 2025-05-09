@@ -71,6 +71,7 @@ def daily_report():
         lines.append(summary)
     except Exception as e:
         lines.append("無法取得 GPT 新聞摘要。")
+        lines.append(str(e))
 
     lines.append("\n來源：Yahoo Finance, OpenAI GPT-4")
 
