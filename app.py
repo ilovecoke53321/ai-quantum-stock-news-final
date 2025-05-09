@@ -7,7 +7,7 @@ from flask import Flask
 # 建立初始報告檔案
 file_path = "daily_report.txt"
 if not os.path.exists(file_path):
-    with open(file_path, "w", encoding="utf-8") as f:
+    with open(file_path, "w", encoding="utf-8-sig") as f:
         f.write("尚無今日報告，請稍後再試。")
 
 app = Flask(__name__)
@@ -81,6 +81,6 @@ def daily_report():
 
 @app.route("/text_report")
 def text_report():
-    with open("daily_report.txt", "r", encoding="utf-8") as f:
+    with open("daily_report.txt", "r", encoding="utf-8-fig") as f:
         content = f.read()
     return f"<pre>{content}</pre>"
